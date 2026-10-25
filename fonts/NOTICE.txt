@@ -1,0 +1,12 @@
+글꼴: 학교안심 보드마카체(기본 굵기) + 학교안심 포스터체(굵게) - 둘 다 KERIS 학교 안심폰트
+출처: 교육저작권지원센터(KERIS) 학교 안심폰트 - https://copyright.keris.or.kr/wft/fntDwnld
+라이선스: Open Font License (OFL) - 상업적 이용, 임베딩, 웹서버 자체 호스팅, 수정 및 재배포 허용.
+          폰트 파일 자체의 유료 판매 및 수정/편집/복사/배포에 대한 대가 수취는 불허.
+          저작권 표시 의무 없음 (참고용으로 이 파일에 출처를 남겨둠).
+
+포함 파일 (CSS의 font-family: 'KERISKEDU' 하나에 굵기별로 서로 다른 두 서체를 묶어서 사용):
+- Hakgyoansim-BoardmarkerR.ttf (원본 파일명: Hakgyoansim_BoardmarkerR.ttf) - 기본 굵기(400, 학교안심 보드마카체)
+- Hakgyoansim-PosterB.ttf (원본 파일명: Hakgyoansim_PosterB.ttf) - 굵게(700, 학교안심 포스터체)
+
+주의: KERIS 공모전 수상작을 제외한 폰트는 정확한 사용 범위가 제작사 규정에 따라 다를 수 있으므로,
+      실제 배포 전 https://copyright.keris.or.kr 에서 최신 이용 조건을 다시 확인하는 것을 권장합니다.
