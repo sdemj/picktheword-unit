@@ -754,7 +754,8 @@ window.removeWhiteBackground = function (imgEl, opts) {
     </div>
     <script>
         /* ================= WEB AUDIO API SOUND EFFECTS ================= */
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
         let sfxMuted = false; // 초기 상태: 효과음 켜짐 (배경음악과 별개로 켜고 끔)
 
         function toggleSfx() {
@@ -767,8 +768,21 @@ window.removeWhiteBackground = function (imgEl, opts) {
            아이패드는 화면을 잠갔다 켜거나 다른 앱에 다녀오면 audioCtx 가 'suspended' 가 아니라
            'interrupted' 상태가 되는데, 예전에는 'suspended' 일 때만 깨워서 그 뒤로 소리가 안 났다.
            running 이 아니면 무조건 깨우고, 아이패드가 소리를 허락하는 터치(touchend·click)마다도 깨운다 */
+        /* [수정 10/30] 아이패드에서 다른 앱에 다녀오면 효과음이 늦게 나거나 버벅이던 문제.
+           멈춰 둔(suspend) audioCtx 를 다시 깨우면 아이패드에서는 소리가 밀려서 한꺼번에 나거나 끊겨 들렸다.
+           이제 백그라운드로 가면 audioCtx 를 닫고(closeAudioCtx), 돌아와서 첫 터치 때 새로 만든다.
+           'interrupted' 가 된 것도 버리고 새로 만든다. 받아 둔 발음 소리 데이터는 새 audioCtx 에서도 그대로 쓴다.
+           소리를 낼 때 아직 깨어나는 중이면 기다렸다가 내되, 0.3초 넘게 걸리면 늦은 소리는 버린다 */
+        function closeAudioCtx() {
+            if (!audioCtx) return;
+            const c = audioCtx; audioCtx = null;
+            try { c.close().catch(() => {}); } catch (e) {}
+        }
         function wakeAudioCtx() {
-            if (audioCtx.state !== 'running' && !document.hidden) audioCtx.resume().catch(() => {});
+            if (!AudioCtxClass || document.hidden) return;
+            if (audioCtx && (audioCtx.state === 'interrupted' || audioCtx.state === 'closed')) closeAudioCtx();
+            if (!audioCtx) { try { audioCtx = new AudioCtxClass(); } catch (e) { return; } }
+            if (audioCtx.state !== 'running') audioCtx.resume().catch(() => {});
         }
         ['pointerdown', 'touchstart', 'touchend', 'click', 'keydown'].forEach(t =>
             document.addEventListener(t, wakeAudioCtx, true));
@@ -778,7 +792,16 @@ window.removeWhiteBackground = function (imgEl, opts) {
         function playSound(type) {
             if (sfxMuted || document.hidden) return;
             wakeAudioCtx();
+            const c = audioCtx;
+            if (!c) return;
+            if (c.state === 'running') { playSoundOn(c, type); return; }
+            const asked = Date.now();
+            c.resume().then(() => {
+                if (audioCtx === c && !document.hidden && Date.now() - asked < 300) playSoundOn(c, type);
+            }).catch(() => {});
+        }
 
+        function playSoundOn(audioCtx, type) {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain);
@@ -911,7 +934,7 @@ window.removeWhiteBackground = function (imgEl, opts) {
                 Object.keys(bgmTracks).forEach(k => { if (bgmTracks[k]) bgmTracks[k].pause(); });
                 if (typeof stopWordAudio === 'function') stopWordAudio();
                 bgmSuppressedByWordAudio = false;
-                if (audioCtx.state === 'running') audioCtx.suspend().catch(() => {});
+                closeAudioCtx();
             } else {
                 tryPlayCurrentBgm();
                 wakeAudioCtx();
@@ -920,6 +943,7 @@ window.removeWhiteBackground = function (imgEl, opts) {
         document.addEventListener('visibilitychange', onPageVisibility);
         window.addEventListener('pagehide', () => {
             Object.keys(bgmTracks).forEach(k => { if (bgmTracks[k]) bgmTracks[k].pause(); });
+            closeAudioCtx();
         });
 
         /* ================= FULLSCREEN ================= */
@@ -2208,12 +2232,14 @@ function playWordAudio(q) {
        풀려 있으므로, 발음 파일을 받아 audioCtx 로 재생하면 터치 없이도 나온다.
        audioCtx 가 아직 안 풀렸거나 파일을 못 받으면(파일을 직접 연 경우 등) 예전 방식으로 낸다 */
     const token = ++wordPlayToken;
-    if (audioCtx.state === 'running') {
+    const ctx = audioCtx;
+    if (ctx && ctx.state === 'running') {
         loadWordBuffer(src).then(buf => {
             if (token !== wordPlayToken) return; // 그사이 멈췄거나 다른 발음을 틀었다
-            const node = audioCtx.createBufferSource();
+            if (audioCtx !== ctx) { playWordAudioElement(src, q, resumeBgm); return; } // 그사이 백그라운드에 다녀와 새로 만들었다
+            const node = ctx.createBufferSource();
             node.buffer = buf;
-            node.connect(audioCtx.destination);
+            node.connect(ctx.destination);
             node.onended = () => {
                 if (currentWordSource !== node) return;
                 currentWordSource = null;
@@ -2235,9 +2261,10 @@ let wordPlayToken = 0;
 const wordBufferCache = {};
 function loadWordBuffer(src) {
     if (!wordBufferCache[src]) {
+        const ctx = audioCtx;
         wordBufferCache[src] = fetch(src)
             .then(r => { if (!r.ok) throw new Error(); return r.arrayBuffer(); })
-            .then(ab => new Promise((res, rej) => audioCtx.decodeAudioData(ab, res, rej)));
+            .then(ab => new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej)));
         wordBufferCache[src].catch(() => { delete wordBufferCache[src]; });
     }
     return wordBufferCache[src];
