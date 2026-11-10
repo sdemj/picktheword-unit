@@ -976,7 +976,7 @@ window.removeWhiteBackground = function (imgEl, opts) {
         const questionBank = [
             {
                 id: 1,
-img: "image/Fruit%20%26%20Vegetable/apple.png", // 이미지 파일 경로
+img: "image/fruit_vegetable/apple.png", // 이미지 파일 경로
     prompts: {
         하: "다음 그림에 해당하는 알맞은 영어 단어는 무엇일까요?",
         중: "다음 그림에 해당하는 알맞은 영어 단어는 무엇일까요?",
@@ -1038,7 +1038,7 @@ img: "image/Fruit%20%26%20Vegetable/apple.png", // 이미지 파일 경로
             wordsArr.forEach(w => {
                 questionBank.push({
                     id: questionBank.length + 1,
-                    img: `image/${encodeURIComponent(w.sub)}/${encodeURIComponent(w.en.replace(/\.$/, '').replace(/ /g, '_'))}.png`,
+                    img: `image/${w.sub.toLowerCase().replace(/\s*&\s*|\s+/g, '_')}/${encodeURIComponent(w.en.replace(/\.$/, '').replace(/ /g, '_'))}.png`,
                     emoji: w.emoji,
                     major: major,
                     sub: w.sub,
@@ -2191,7 +2191,7 @@ function speakWord(word, onEnd) {
 function getWordAudioPath(q) {
     if (!q || !q.major || !q.correct) return null;
     const fileBase = q.correct.replace(/\.$/, '');
-    return `audio/${encodeURIComponent(q.major)}/${encodeURIComponent(fileBase)}.mp3`;
+    return `audio/${UNIT.topicDir(q.major)}/${encodeURIComponent(fileBase)}.mp3`;
 }
 
 // 지금 재생 중인 단어 발음(녹음 파일)을 기억해뒀다가, 화면을 나갈 때 멈출 수 있게 한다.
