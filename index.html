@@ -496,6 +496,7 @@ window.removeWhiteBackground = function (imgEl, opts) {
 </div>
 <script src="topnav.js" data-backdrop="introbg.png"></script>
 <script src="unit-data.js"></script>
+<script src="unit-media.js"></script>
 <script src="unit.js"></script>
 
 <!-- 화면 5개(인트로/카테고리/소분류/난이도/게임)와 팝업 2개(how-to-play/hint)를 전부
@@ -1629,17 +1630,16 @@ function buildUnitQuestionPool() {
         if (base) {
             return Object.assign({}, base, { id: 1000 + i, hints: Object.assign({}, base.hints, { 하: ko }) });
         }
+        // 테마 그림이 없는 단어는 단원별 게임 이미지를 쓴다 (그것도 없으면 그림 없는 문제로만 나온다)
+        const unitImg = UNIT.image(w.en);
+        const prompt = unitImg ? "다음 그림에 해당하는 알맞은 영어 단어는 무엇일까요?" : "다음 뜻에 해당하는 알맞은 영어 단어는 무엇일까요?";
         return {
             id: 1000 + i,
-            img: null,
+            img: unitImg,
             emoji: null,
             major: null,
             sub: null,
-            prompts: {
-                하: "다음 뜻에 해당하는 알맞은 영어 단어는 무엇일까요?",
-                중: "다음 뜻에 해당하는 알맞은 영어 단어는 무엇일까요?",
-                상: "다음 뜻에 해당하는 알맞은 영어 단어는 무엇일까요?"
-            },
+            prompts: { 하: prompt, 중: prompt, 상: prompt },
             hints: { 하: ko, 중: ko, 상: ko },
             correct: w.en,
             options: [w.en, ...allWords.filter(x => x !== w.en)]
@@ -2189,7 +2189,9 @@ function speakWord(word, onEnd) {
 // audio/<대분류 폴더명>/<단어>.mp3 형태로 녹음된 발음 파일 경로를 만든다.
 // 'the U.S.'/'the U.K.'/'P.E.'처럼 단어 끝에 마침표가 있는 경우 파일명에는 마침표가 빠져 있다.
 function getWordAudioPath(q) {
-    if (!q || !q.major || !q.correct) return null;
+    if (!q || !q.correct) return null;
+    const unitSrc = UNIT.audio(q.correct); if (unitSrc) return unitSrc;   // 단원별 게임 음성을 먼저 쓴다
+    if (!q.major) return null;
     const fileBase = q.correct.replace(/\.$/, '');
     return `audio/${UNIT.topicDir(q.major)}/${encodeURIComponent(fileBase)}.mp3`;
 }
