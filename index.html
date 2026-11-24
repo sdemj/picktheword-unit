@@ -872,6 +872,10 @@ window.removeWhiteBackground = function (imgEl, opts) {
         function tryPlayCurrentBgm() {
             // 백그라운드(화면 꺼짐·다른 앱)에서는 틀지 않는다. 돌아오면 onPageVisibility 가 다시 부른다
             if (musicMuted || document.hidden) return;
+            // 발음이 나오는 동안에는 배경음악을 다시 틀지 않는다 (발음이 끝나면 resumeBgm 이 flag 를 풀고 부른다).
+            // 이게 없으면 스피커/보기를 누를 때 생기는 click·pointerdown 이 unlockAudio 를 통해
+            // 멈춰 둔 배경음악을 도로 켜서 발음과 겹쳐 나왔다
+            if (bgmSuppressedByWordAudio) return;
             const audio = bgmTracks[currentBgmKey];
             if (!audio) return;
             syncBgmAudio(audio);
@@ -903,8 +907,11 @@ window.removeWhiteBackground = function (imgEl, opts) {
                 audio.pause();
                 if (icon) icon.className = 'fa-solid fa-volume-xmark';
             } else {
-                syncBgmAudio(audio);
-                audio.play().catch(() => {});
+                // 발음이 나오는 중이면 바로 켜지 않는다 (발음이 끝나면 resumeBgm 이 다시 튼다)
+                if (!bgmSuppressedByWordAudio) {
+                    syncBgmAudio(audio);
+                    audio.play().catch(() => {});
+                }
                 if (icon) icon.className = 'fa-solid fa-music';
             }
         }
