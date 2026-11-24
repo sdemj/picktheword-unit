@@ -1794,9 +1794,13 @@ function buildUnitQuestionPool() {
         if (base && fix) {
             const q = Object.assign({}, base, { id: 1000 + i, hints: { 하: ko, 중: fix[0], 상: fix[1] } });
             if (fix[2]) {
-                // 테마 그림이 다른 뜻(예: 머리 빗는 그림)이라 그림 없이 뜻·듣기 문제로만 낸다
-                const prompt = "다음 뜻에 해당하는 알맞은 영어 단어는 무엇일까요?";
-                q.img = null;
+                // 테마 그림이 다른 뜻(예: 머리 빗는 그림)이라 테마 그림은 쓰지 않는다.
+                // 단원별 게임 이미지(예: 3학년 brush 붓)가 있으면 그것으로 그림 문제를 내고, 없으면 뜻·듣기 문제로만 낸다
+                const fixImg = UNIT.image(w.en);
+                const prompt = fixImg
+                    ? "다음 그림에 해당하는 알맞은 영어 단어는 무엇일까요?"
+                    : "다음 뜻에 해당하는 알맞은 영어 단어는 무엇일까요?";
+                q.img = fixImg;
                 q.emoji = null;
                 q.prompts = { 하: prompt, 중: prompt, 상: prompt };
             }
